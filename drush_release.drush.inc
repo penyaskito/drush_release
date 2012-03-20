@@ -37,7 +37,7 @@ function drush_release_drush_help($section) {
  * Drush callback; release-patch based on two git tags.
  */
 function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
-  drush_shell_exec('git diff --name-status %s %s --', $tag0, $tag1);
+  drush_shell_exec('git diff -F --name-status %s %s --', $tag0, $tag1);
   $diffed_files = drush_shell_exec_output();
 
   $added = array();
@@ -68,14 +68,14 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
 
   foreach ($added as $afile) {
     $folder = $patch_path .'/'. $afile;
-    drush_mkdir($folder);
-    drush_log(dt("%folder created", array('%folder' => $folder)),'debug'); 
-    copy($mfile, $folder);
+    drush_mkdir(dirname($folder));
+    drush_log(dt("%folder created", array('%folder' => dirname($folder))),'debug'); 
+    copy($afile, $folder);
     drush_log(dt("%file copied to %dir", array('%file'=> $afile, '%dir'=>$folder)), 'debug');
   }  
   foreach ($modified as $mfile) {
     $folder = $patch_path .'/'. $mfile;
-    drush_mkdir(folder);
+    drush_mkdir(dirname($folder));
     drush_log(dt("%folder created", array('%folder' => $folder)),'debug'); 
     copy($mfile, $folder);
     drush_log(dt("%file copied to %dir", array('%file'=> $mfile, '%dir'=>$folder)), 'debug');
