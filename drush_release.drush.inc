@@ -37,7 +37,8 @@ function drush_release_drush_help($section) {
  * Drush callback; release-patch based on two git tags.
  */
 function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
-  drush_shell_exec('git diff -F --name-status %s %s --', $tag0, $tag1);
+  // By default, git pages with less. The pipe to cat avoids it without touching git global core.pager property.
+  drush_shell_exec('git diff -F --name-status %s %s -- | cat', $tag0, $tag1);
   $diffed_files = drush_shell_exec_output();
 
   $added = array();
