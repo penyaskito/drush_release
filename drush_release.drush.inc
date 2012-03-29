@@ -81,7 +81,28 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
     copy($mfile, $folder);
     drush_log(dt("%file copied to %dir", array('%file'=> $mfile, '%dir'=>$folder)), 'debug');
   }
-  // Ignore deleted for now.
+  if (!empty($deleted)) {
+    $bash_header = "#!/bin/sh\n";
+    $rmfile .= $bash_header;
+    $rmdirs = array();
+    foreach ($deleted as $dfile) {
+      drush_log(dt("%file removed", array('%file' => $dfile)), 'debug');
+      $rmfile .= "rm -rf $dfile\n";
+      drush_log(dirname($dfile) ." folder being deleted", 'debug');
+      if (!file_exists(dirname($dfile))) {
+        if (! in_array(dirname($dfile), $rmdirs)) {
+          $rmdirs[] = dirname($dfile);
+          drush_log(dt("%folder will be deleted.", array('%folder' => dirname($dfile))), 'debug');
+        }
+      }
+    }
+    foreach ($rmdirs as $folder) {
+     $rmfile .= "rm -rf $folder \n";
+    }
+    $fh = fopen("$patch_path/scripts/$path.sh", 'w');
+    fwrite($fh, $rmfile);
+    fclose($fh);
+  }
   
   if (drush_get_option('tar', FALSE)) {
     drush_shell_cd_and_exec(dirname($patch_path), "tar -cf %s %s", $patch_path .'.tar', basename($patch_path));
