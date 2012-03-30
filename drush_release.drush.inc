@@ -99,6 +99,9 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
     foreach ($rmdirs as $folder) {
      $rmfile .= "rm -rf $folder \n";
     }
+    if (!file_exists("$patch_path/scripts")) {
+      drush_mkdir("$patch_path/scripts");
+    }
     $fh = fopen("$patch_path/scripts/$path.sh", 'w');
     fwrite($fh, $rmfile);
     fclose($fh);
