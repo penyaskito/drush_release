@@ -17,6 +17,7 @@ function drush_release_drush_command() {
     ),
     'options' => array(
       'tar' => 'Create the result as a tar file.',
+      'no-trunk' => 'Avoid last directory before drush directory',
     ),
   );
 
@@ -62,7 +63,11 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
   
   $drupal_path = drush_locate_root();
   $patch_path = drush_cwd() .'/'. $path;
-
+  $files_path = explode(DIRECTORY_SEPARATOR, $drupal_path);
+  if (drush_get_option('no-trunk', FALSE)) {
+    $files_path = array_splice($files_path, 0, count($files_path) - 1);
+  }
+  $files_path = implode(DIRECTORY_SEPARATOR, $files_path) . DIRECTORY_SEPARATOR;
   drush_mkdir($patch_path);
   drush_log(dt("%folder created", array('%folder' => $patch_path)), 'debug'); 
   chdir($drupal_path);
@@ -71,14 +76,14 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
     $folder = $patch_path .'/'. $afile;
     drush_mkdir(dirname($folder));
     drush_log(dt("%folder created", array('%folder' => dirname($folder))),'debug'); 
-    copy($afile, $folder);
+    copy($files_path . $afile, $folder);
     drush_log(dt("%file copied to %dir", array('%file'=> $afile, '%dir'=>$folder)), 'debug');
   }  
   foreach ($modified as $mfile) {
     $folder = $patch_path .'/'. $mfile;
     drush_mkdir(dirname($folder));
     drush_log(dt("%folder created", array('%folder' => $folder)),'debug'); 
-    copy($mfile, $folder);
+    copy($files_path . $mfile, $folder);
     drush_log(dt("%file copied to %dir", array('%file'=> $mfile, '%dir'=>$folder)), 'debug');
   }
   if (!empty($deleted)) {
