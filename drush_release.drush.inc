@@ -113,6 +113,9 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
   }
   
   if (drush_get_option('tar', FALSE)) {
+    if (empty($path)) {
+      $patch_path .= date('YmdHis');
+    }
     drush_shell_cd_and_exec(dirname($patch_path), "tar -cf %s %s", $patch_path .'.tar', basename($patch_path));
   }
 }
