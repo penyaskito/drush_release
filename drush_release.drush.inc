@@ -13,11 +13,12 @@ function drush_release_drush_command() {
       'path' => 'The path at which to make the package.',
     ),
     'examples' => array(
-      'drush release-patch production-20100201 production-20100203 ./example' => 'Build the release patch in the example directory.',
+      'drush release-patch production-20100201 production-20100203 ./example' => 'Build the release patch in the example directory.'
     ),
     'options' => array(
       'tar' => 'Create the result as a tar file.',
       'no-trunk' => 'Avoid last directory before drush directory',
+      'svn' => 'SVN repository, no Git',
     ),
   );
 
@@ -30,23 +31,28 @@ function drush_release_drush_command() {
 function drush_release_drush_help($section) {
   switch ($section) {
   case 'drush:release-patch':
-    return dt('Creates a release patch package from two git tags.');
+    return dt('Creates a release patch package from two git tags or two svn revisions.');
   }
 }
 
 /**
- * Drush callback; release-patch based on two git tags.
+ * Drush callback; release-patch based on two git tags or two svn revision.
  */
 function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
   // By default, git pages with less. The pipe to cat avoids it without touching git global core.pager property.
-  drush_shell_exec('git diff -F --name-status %s %s -- | cat', $tag0, $tag1);
+  if (drush_get_option('svn', FALSE)) {
+    $command = 'svn diff -r %s:%s --summarize | cat';
+  } else {
+    $command = 'git diff -F --name-status %s %s -- | cat';
+  }
+  drush_shell_exec($command, $tag0, $tag1);
   $diffed_files = drush_shell_exec_output();
 
   $added = array();
   $deleted = array();
   $modified = array();
   foreach ($diffed_files as $diff_file) {
-    $diff = explode("\t", $diff_file);
+    $diff = preg_split("/[\s,]+/", $diff_file);
     switch ($diff[0]){
     case 'A':
       $added[] = $diff[1];
@@ -60,7 +66,7 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
     }
     drush_log(dt("File %path has been %status.", array('%path' => $diff[1], '%status' => $diff[0] == 'A' ? 'added' : 'modified')), 'debug');
   }
-  
+
   $drupal_path = drush_locate_root();
   $patch_path = drush_cwd() .'/'. $path;
   $files_path = explode(DIRECTORY_SEPARATOR, $drupal_path);
@@ -69,20 +75,26 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
   }
   $files_path = implode(DIRECTORY_SEPARATOR, $files_path) . DIRECTORY_SEPARATOR;
   drush_mkdir($patch_path);
-  drush_log(dt("%folder created", array('%folder' => $patch_path)), 'debug'); 
+  drush_log(dt("%folder created", array('%folder' => $patch_path)), 'debug');
   chdir($drupal_path);
+
+
 
   foreach ($added as $afile) {
     $folder = $patch_path .'/'. $afile;
     drush_mkdir(dirname($folder));
-    drush_log(dt("%folder created", array('%folder' => dirname($folder))),'debug'); 
-    copy($files_path . $afile, $folder);
+    drush_log(dt("%folder created", array('%folder' => dirname($folder))),'debug');
+
+    if (is_file($folder)) {
+      copy($files_path . $afile, $folder);
+    }
+
     drush_log(dt("%file copied to %dir", array('%file'=> $afile, '%dir'=>$folder)), 'debug');
-  }  
+  }
   foreach ($modified as $mfile) {
     $folder = $patch_path .'/'. $mfile;
     drush_mkdir(dirname($folder));
-    drush_log(dt("%folder created", array('%folder' => $folder)),'debug'); 
+    drush_log(dt("%folder created", array('%folder' => $folder)),'debug');
     copy($files_path . $mfile, $folder);
     drush_log(dt("%file copied to %dir", array('%file'=> $mfile, '%dir'=>$folder)), 'debug');
   }
@@ -111,7 +123,7 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
     fwrite($fh, $rmfile);
     fclose($fh);
   }
-  
+
   if (drush_get_option('tar', FALSE)) {
     if (empty($path)) {
       $patch_path .= date('YmdHis');
