@@ -85,7 +85,7 @@ function drush_drush_release_release_patch($tag0, $tag1, $path = NULL) {
     drush_mkdir(dirname($folder));
     drush_log(dt("%folder created", array('%folder' => dirname($folder))),'debug');
 
-    if (is_file($folder)) {
+    if (is_file($files_path . $afile)) {
       copy($files_path . $afile, $folder);
     }
 
